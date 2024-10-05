@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Sharing App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .signup-section, .upload-section, .music-list-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+        }
+        audio {
+            width: 100%;
+        }
+        .song-item {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .cover-art {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Music Sharing App</h1>
+
+        <!-- Signup Section -->
+        <div class="signup-section" id="signup-section">
+            <h2>User Signup</h2>
+            <input type="text" id="signup-name" placeholder="Name">
+            <input type="email" id="signup-email" placeholder="Email">
+            <input type="password" id="signup-password" placeholder="Password">
+            <button onclick="signupUser()">Sign Up</button>
+        </div>
+
+        <!-- Music Upload Section (hidden until signup) -->
+        <div class="upload-section hidden" id="upload-section">
+            <h2>Upload Music</h2>
+            <input type="text" id="song-title" placeholder="Song Title">
+            <input type="text" id="artist-name" placeholder="Artist Name">
+            <input type="file" id="cover-art" accept="image/*" placeholder="Upload Cover Art">
+            <input type="file" id="song-file" accept="audio/*" placeholder="Upload Song">
+            <button onclick="uploadMusic()">Upload</button>
+        </div>
+
+        <!-- Music List Section -->
+        <div class="music-list-section hidden" id="music-list-section">
+            <h2>Your Music Library</h2>
+            <input type="text" id="search-bar" onkeyup="searchMusic()" placeholder="Search songs...">
+            <div id="music-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let musicLibrary = JSON.parse(localStorage.getItem('musicLibrary')) || [];
+
+        // Function to display songs
+        function displaySongs() {
+            const musicList = document.getElementById('music-list');
+            musicList.innerHTML = '';
+            musicLibrary.forEach((song, index) => {
+                musicList.innerHTML += `
+                    <div class="song-item" id="song-${index}">
+                        <img src="${song.coverArt}" class="cover-art" alt="Cover Art">
+                        <div>
+                            <p><strong>${song.title}</strong> by ${song.artist}</p>
+                            <audio controls>
+                                <source src="${song.songFile}" type="audio/mp3">
+                            </audio>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Function to upload music
+        function uploadMusic() {
+            const title = document.getElementById('song-title').value;
+            const artist = document.getElementById('artist-name').value;
+            const coverArtFile = document.getElementById('cover-art').files[0];
+            const songFile = document.getElementById('song-file').files[0];
+
+            if (title && artist && coverArtFile && songFile) {
+                const reader = new FileReader();
+
+                // Reading cover art as a Base64 string
+                reader.readAsDataURL(coverArtFile);
+                reader.onload = function (e) {
+                    const coverArt = e.target.result;
+                    const songFileURL = URL.createObjectURL(songFile);
+
+                    // Saving the music details in an object
+                    const songData = {
+                        title,
+                        artist,
+                        coverArt,
+                        songFile: songFileURL
+                    };
+
+                    // Storing song in local storage
+                    musicLibrary.push(songData);
+                    localStorage.setItem('musicLibrary', JSON.stringify(musicLibrary));
+
+                    // Clear form fields
+                    document.getElementById('song-title').value = '';
+                    document.getElementById('artist-name').value = '';
+                    document.getElementById('cover-art').value = '';
+                    document.getElementById('song-file').value = '';
+
+                    // Display updated list
+                    displaySongs();
+                };
+            } else {
+                alert('Please fill in all fields and upload both a song file and cover art.');
+            }
+        }
+
+        // Function to search music
+        function searchMusic() {
+            const query = document.getElementById('search-bar').value.toLowerCase();
+            const songs = document.querySelectorAll('.song-item');
+            songs.forEach((song) => {
+                const title = song.querySelector('p strong').textContent.toLowerCase();
+                const artist = song.querySelector('p').textContent.toLowerCase();
+                if (title.includes(query) || artist.includes(query)) {
+                    song.style.display = '';
+                } else {
+                    song.style.display = 'none';
+                }
+            });
+        }
+
+        // Signup function
+        function signupUser() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            if (name && email && password) {
+                // Store user info in localStorage
+                const user = {
+                    name,
+                    email,
+                    password
+                };
+                localStorage.setItem('user', JSON.stringify(user));
+
+                alert('Signup successful! You can now upload music.');
+
+                // Show upload section and music list section
+                document.getElementById('signup-section').classList.add('hidden');
+                document.getElementById('upload-section').classList.remove('hidden');
+                document.getElementById('music-list-section').classList.remove('hidden');
+            } else {
+                alert('Please fill in all fields.');
+            }
+        }
+
+        // Check if user is signed up
+        function checkUserSignup() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                document.getElementById('signup-section').classList.add('hidden');
+                document.getElementById('upload-section').classList.remove('hidden');
+                document.getElementById('music-list-section').classList.remove('hidden');
+            }
+        }
+
+        // Initialize display on page load
+        checkUserSignup();
+        displaySongs();
+    </script>
+</body>
+</html>
